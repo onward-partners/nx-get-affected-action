@@ -30,7 +30,7 @@ A comma seperated string of all affected apps
 
 ```yaml
 jobs:
-  build:
+  get-affected:
     runs-on: ubuntu-latest
     name: Get affected apps
     steps:
@@ -41,4 +41,20 @@ jobs:
           branch: 'main'
           workflow_id: 'main.yml'
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  build-app-a:
+    name: Build app A
+    needs: get-affected
+    if: contains( needs.get-affected.output.affected, 'app-a' )
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Build app A
+        run: yarn run build
 ```
