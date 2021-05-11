@@ -35,6 +35,9 @@ jobs:
     name: Get affected apps
     steps:
       - uses: actions/checkout@v1
+        with:
+          fetch-depth: 0
+
       - uses: i40MC/nx-get-affected-action@v1
         id: affected_apps
         with:
