@@ -291,7 +291,7 @@ exports.locateNx = locateNx;
 function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
     return __awaiter(this, void 0, void 0, function* () {
         let output = yield nx([
-            'affected',
+            'affected:apps',
             `--base=${lastSuccesfulCommitSha}`,
             '--head=HEAD',
             '--plain',
