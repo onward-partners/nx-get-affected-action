@@ -1,11 +1,24 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: '@i40mc/nx-get-affected-action'
+description: 'This action returns the apps that got affected since the last build'
+author: 'scomans'
 inputs:
-  milliseconds: # change this
+  github_token:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'GitHub token to talk to the API with'
+  workflow_id:
+    required: true
+    description: 'ID of the workflow to check for'
+  branch:
+    required: true
+    description: 'Branch to check against'
+    default: 'main'
+
+outputs:
+  affected:
+    description: 'An array of all affected apps'
+  affectedString:
+    description: 'A comma seperated string of all affected apps'
+
 runs:
   using: 'node12'
   main: 'dist/index.js'

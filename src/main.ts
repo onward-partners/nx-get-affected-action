@@ -1,19 +1,27 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {getLastSuccessfulCommit} from './last-successful-commit'
+import {getNxAffectedApps, locateNx} from './nx'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
+    const lastSuccessfulCommit = await core.group(
+      '🔍 Get commit with last sucessful build',
+      async () =>
+        getLastSuccessfulCommit(
+          core.getInput('github_token'),
+          core.getInput('workflow_id'),
+          core.getInput('branch')
+        )
+    )
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const nx = await core.group('🔍 Ensuring Nx is available', locateNx)
+    const affected = await getNxAffectedApps(lastSuccessfulCommit, nx)
 
-    core.setOutput('time', new Date().toTimeString())
+    core.setOutput('affected', affected)
+    core.setOutput('affectedString', affected.join(','))
   } catch (error) {
     core.setFailed(error.message)
   }
 }
 
-run()
+void run()
