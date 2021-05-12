@@ -15,5 +15,5 @@ export async function getLastSuccessfulCommit(
     branch,
     event: 'push',
   });
-  return res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : '';
+  return res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : null;
 }

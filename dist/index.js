@@ -119,7 +119,7 @@ function getLastSuccessfulCommit(token, workflowId, branch) {
             branch,
             event: 'push',
         });
-        return res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : '';
+        return res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : null;
     });
 }
 exports.getLastSuccessfulCommit = getLastSuccessfulCommit;
@@ -290,12 +290,17 @@ function locateNx() {
 exports.locateNx = locateNx;
 function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
     return __awaiter(this, void 0, void 0, function* () {
-        let output = yield nx([
+        const args = [
             'affected:apps',
-            `--base=${lastSuccesfulCommitSha}`,
-            '--head=HEAD',
             '--plain',
-        ]);
+        ];
+        if (lastSuccesfulCommitSha) {
+            args.push(`--base=${lastSuccesfulCommitSha}`, '--head=HEAD');
+        }
+        else {
+            args.push('--all');
+        }
+        let output = yield nx(args);
         output = output.trim();
         return output ? output.split(/\s+/gm) : [];
     });

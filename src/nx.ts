@@ -88,12 +88,21 @@ export async function getNxAffectedApps(
   lastSuccesfulCommitSha: string,
   nx: CommandWrapper,
 ): Promise<string[]> {
-  let output = await nx([
+  const args = [
     'affected:apps',
-    `--base=${lastSuccesfulCommitSha}`,
-    '--head=HEAD',
     '--plain',
-  ]);
+  ];
+  if (lastSuccesfulCommitSha) {
+    args.push(
+      `--base=${lastSuccesfulCommitSha}`,
+      '--head=HEAD',
+    );
+  } else {
+    args.push(
+      '--all',
+    );
+  }
+  let output = await nx(args);
   output = output.trim();
   return output ? output.split(/\s+/gm) : [];
 }
