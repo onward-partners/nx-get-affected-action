@@ -106,6 +106,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getLastSuccessfulCommit = void 0;
+const core = __importStar(__webpack_require__(2186));
 const github = __importStar(__webpack_require__(5438));
 function getLastSuccessfulCommit(token, workflowId, branch) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -119,7 +120,9 @@ function getLastSuccessfulCommit(token, workflowId, branch) {
             branch,
             event: 'push',
         });
-        return res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : null;
+        const result = res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : null;
+        core.info(`ℹ️ Last successful build: ${result}`);
+        return result;
     });
 }
 exports.getLastSuccessfulCommit = getLastSuccessfulCommit;
@@ -173,7 +176,9 @@ function run() {
             const nx = yield core.group('🔍 Ensuring Nx is available', nx_1.locateNx);
             const affected = yield nx_1.getNxAffectedApps(lastSuccessfulCommit, nx);
             core.setOutput('affected', affected);
+            core.info(`ℹ️ Setting affected output to ${affected}`);
             core.setOutput('affectedString', affected.join(','));
+            core.info(`ℹ️ Setting affectedString output to ${affected.join(',')}`);
         }
         catch (error) {
             core.setFailed(error.message);

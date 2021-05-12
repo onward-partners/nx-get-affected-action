@@ -18,7 +18,9 @@ async function run(): Promise<void> {
     const affected = await getNxAffectedApps(lastSuccessfulCommit, nx)
 
     core.setOutput('affected', affected)
+    core.info(`ℹ️ Setting affected output to ${affected}`)
     core.setOutput('affectedString', affected.join(','))
+    core.info(`ℹ️ Setting affectedString output to ${affected.join(',')}`)
   } catch (error) {
     core.setFailed(error.message)
   }

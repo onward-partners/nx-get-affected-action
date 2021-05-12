@@ -20,17 +20,13 @@ async function assertHasNxPackageScript(): Promise<void> {
     core.info('Found package.json file');
 
     if (typeof packageJson.scripts?.nx !== 'string') {
-      throw new Error(
-        `Failed to locate the 'nx' script in package.json, did you setup your project with Nx's CLI?`,
-      );
+      throw new Error(`Failed to locate the 'nx' script in package.json, did you setup your project with Nx's CLI?`);
     }
 
     core.info(`Found 'nx' script inside package.json file`);
 
   } catch (err) {
-    throw new Error(
-      'Failed to load the \'package.json\' file, did you setup your project correctly?',
-    );
+    throw new Error('Failed to load the \'package.json\' file, did you setup your project correctly?');
   }
 }
 
@@ -38,9 +34,7 @@ async function tryLocate(
   entries: [pmName: string, filePath: string, factory: () => CommandWrapper][],
 ): Promise<CommandWrapper> {
   if (entries.length === 0) {
-    throw new Error(
-      'Failed to detect your package manager, are you using npm or yarn?',
-    );
+    throw new Error('Failed to detect your package manager, are you using npm or yarn?');
   }
 
   const [entry, ...rest] = entries;
