@@ -33,6 +33,9 @@ jobs:
   get-affected:
     runs-on: ubuntu-latest
     name: Get affected apps
+    outputs:
+      affected: ${{ steps.affected_apps.outputs.affected }}
+      affectedString: ${{ steps.affected_apps.outputs.affectedString }}
     steps:
       - uses: actions/checkout@v1
         with:
