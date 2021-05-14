@@ -176,7 +176,7 @@ function run() {
             const nx = yield core.group('🔍 Ensuring Nx is available', nx_1.locateNx);
             const affected = yield nx_1.getNxAffectedApps(lastSuccessfulCommit, nx);
             core.setOutput('affected', affected);
-            core.info(`ℹ️ Setting affected output to ${affected}`);
+            core.info(`ℹ️ Setting affected output to [${affected}]`);
             core.setOutput('affectedString', affected.join(','));
             core.info(`ℹ️ Setting affectedString output to ${affected.join(',')}`);
         }
@@ -306,8 +306,12 @@ function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
             args.push('--all');
         }
         let output = yield nx(args);
-        output = output.trim();
-        return output ? output.split(/\s+/gm) : [];
+        return output
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => !line.includes('affected:apps') && line !== '' && !line.startsWith('Done in'))
+            .join(' ')
+            .split(/\s+/gm);
     });
 }
 exports.getNxAffectedApps = getNxAffectedApps;

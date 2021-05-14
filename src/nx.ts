@@ -97,6 +97,10 @@ export async function getNxAffectedApps(
     );
   }
   let output = await nx(args);
-  output = output.trim();
-  return output ? output.split(/\s+/gm) : [];
+  return output
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => !line.includes('affected:apps') && line !== '' && !line.startsWith('Done in'))
+    .join(' ')
+    .split(/\s+/gm);
 }
