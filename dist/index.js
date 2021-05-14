@@ -311,7 +311,8 @@ function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
             .map(line => line.trim())
             .filter(line => !line.includes('affected:apps') && line !== '' && !line.startsWith('Done in'))
             .join(' ')
-            .split(/\s+/gm);
+            .split(/\s+/gm)
+            .filter(line => line !== '');
     });
 }
 exports.getNxAffectedApps = getNxAffectedApps;
