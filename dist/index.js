@@ -313,8 +313,10 @@ function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
             core.debug(`LINE>>${line}<<`);
             return line;
         });
-        const iStart = output.findIndex(line => line.startsWith('nx affected:apps'));
+        const iStart = output.findIndex(line => line.includes('nx affected:apps'));
         const iEnd = output.findIndex(line => line.startsWith('Done in'));
+        core.debug(`iStart: ${iStart}`);
+        core.debug(`iEnd: ${iEnd}`);
         if (iStart !== -1) {
             if (iEnd === iStart + 2 || iEnd === -1) {
                 output = [output[iStart + 1]];
