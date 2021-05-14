@@ -97,12 +97,11 @@ export async function getNxAffectedApps(
     );
   }
   let output = await nx(args);
-  core.info(`CONTENT>>${output}<<`);
+  core.debug(`CONTENT>>${output}<<`);
   return output
-    .split('\n')
     .map(line => line.trim())
     .map(line => {
-      core.info(`LINE: ${line}`);
+      core.debug(`LINE>>${line}<<`);
       return line;
     })
     .filter(line => !line.includes('affected:apps') && line !== '' && !line.startsWith('Done in'))

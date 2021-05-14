@@ -48,11 +48,11 @@ class CommandBuilder {
             throw new Error('No command given to CommandWrapper');
         }
         return (args, options) => __awaiter(this, void 0, void 0, function* () {
-            let result = '';
+            let result = [];
             yield exec.exec(this.command, [...this.args, ...(args !== null && args !== void 0 ? args : [])]
                 .filter(arg => arg.length > 0)
                 .map(arg => arg.trim()), Object.assign(Object.assign({}, options), { listeners: {
-                    stdline: data => (result += data)
+                    stdline: data => result.push(data)
                 } }));
             return result;
         });
@@ -306,12 +306,11 @@ function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
             args.push('--all');
         }
         let output = yield nx(args);
-        core.info(`CONTENT>>${output}<<`);
+        core.debug(`CONTENT>>${output}<<`);
         return output
-            .split('\n')
             .map(line => line.trim())
             .map(line => {
-            core.info(`LINE: ${line}`);
+            core.debug(`LINE>>${line}<<`);
             return line;
         })
             .filter(line => !line.includes('affected:apps') && line !== '' && !line.startsWith('Done in'))

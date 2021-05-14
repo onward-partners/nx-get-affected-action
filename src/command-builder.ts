@@ -3,7 +3,7 @@ import * as exec from '@actions/exec'
 export type CommandWrapper = (
   args?: string[],
   options?: exec.ExecOptions
-) => Promise<string>
+) => Promise<string[]>
 
 export class CommandBuilder {
   private command = ''
@@ -15,7 +15,7 @@ export class CommandBuilder {
     }
 
     return async (args?: string[], options?: exec.ExecOptions) => {
-      let result = ''
+      let result = []
       await exec.exec(
         this.command,
         [...this.args, ...(args ?? [])]
@@ -24,7 +24,7 @@ export class CommandBuilder {
         {
           ...options,
           listeners: {
-            stdline: data => (result += data)
+            stdline: data => result.push(data)
           }
         }
       )
