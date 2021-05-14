@@ -174,7 +174,7 @@ function run() {
                 return last_successful_commit_1.getLastSuccessfulCommit(core.getInput('github_token'), core.getInput('workflow_id'), core.getInput('branch'));
             }));
             const nx = yield core.group('🔍 Ensuring Nx is available', nx_1.locateNx);
-            const affected = yield nx_1.getNxAffectedApps(lastSuccessfulCommit, nx);
+            const affected = yield core.group('🔍 Get affected Nx apps', () => __awaiter(this, void 0, void 0, function* () { return nx_1.getNxAffectedApps(lastSuccessfulCommit, nx); }));
             core.setOutput('affected', affected);
             core.info(`ℹ️ Setting affected output to [${affected}]`);
             core.setOutput('affectedString', affected.join(','));
@@ -307,16 +307,24 @@ function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
         }
         let output = yield nx(args);
         core.debug(`CONTENT>>${output}<<`);
-        return output
+        output = output
             .map(line => line.trim())
             .map(line => {
             core.debug(`LINE>>${line}<<`);
             return line;
-        })
-            .filter(line => !line.includes('affected:apps') && line !== '' && !line.startsWith('Done in'))
+        });
+        const iStart = output.findIndex(line => line.startsWith('nx affected:apps'));
+        const iEnd = output.findIndex(line => line.startsWith('Done in'));
+        if (iStart !== -1) {
+            if (iEnd === iStart + 2 || iEnd === -1) {
+                output = [output[iStart + 1]];
+            }
+        }
+        output = output
             .join(' ')
             .split(/\s+/gm)
             .filter(line => line !== '');
+        return output;
     });
 }
 exports.getNxAffectedApps = getNxAffectedApps;

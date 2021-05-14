@@ -98,14 +98,22 @@ export async function getNxAffectedApps(
   }
   let output = await nx(args);
   core.debug(`CONTENT>>${output}<<`);
-  return output
+  output = output
     .map(line => line.trim())
     .map(line => {
       core.debug(`LINE>>${line}<<`);
       return line;
-    })
-    .filter(line => !line.includes('affected:apps') && line !== '' && !line.startsWith('Done in'))
+    });
+  const iStart = output.findIndex(line => line.startsWith('nx affected:apps'));
+  const iEnd = output.findIndex(line => line.startsWith('Done in'));
+  if (iStart !== -1) {
+    if (iEnd === iStart + 2 || iEnd === -1) {
+      output = [output[iStart + 1]];
+    }
+  }
+  output = output
     .join(' ')
     .split(/\s+/gm)
     .filter(line => line !== '');
+  return output;
 }
