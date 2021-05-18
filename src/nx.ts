@@ -100,6 +100,7 @@ export async function getNxAffectedApps(
   core.debug(`CONTENT>>${output}<<`);
   output = output
     .map(line => line.trim())
+    .filter(line => line !== '')
     .map(line => {
       core.debug(`LINE>>${line}<<`);
       return line;
