@@ -104,7 +104,7 @@ export async function getNxAffectedApps(
       core.debug(`LINE>>${line}<<`);
       return line;
     });
-  const iStart = output.findIndex(line => line.includes('nx affected:apps'));
+  const iStart = output.findIndex(line => line.includes('nx') && line.includes('affected:apps'));
   const iEnd = output.findIndex(line => line.startsWith('Done in'));
   core.debug(`iStart: ${iStart}`)
   core.debug(`iEnd: ${iEnd}`)
