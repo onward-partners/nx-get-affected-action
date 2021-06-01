@@ -318,10 +318,11 @@ function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
         const iEnd = output.findIndex(line => line.startsWith('Done in'));
         core.debug(`iStart: ${iStart}`);
         core.debug(`iEnd: ${iEnd}`);
-        if (iStart !== -1) {
-            if (iEnd === iStart + 2 || iEnd === -1) {
-                output = [output[iStart + 1]];
-            }
+        if (iStart !== -1 && (iEnd === iStart + 2 || iEnd === -1)) {
+            output = [output[iStart + 1]];
+        }
+        else {
+            output = [];
         }
         output = output
             .join(' ')

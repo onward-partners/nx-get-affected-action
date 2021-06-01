@@ -1,6 +1,6 @@
 {
   "name": "@i40mc/nx-get-affected-action",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "private": true,
   "description": "TypeScript template action",
   "main": "lib/main.js",
