@@ -25,7 +25,7 @@ async function run(): Promise<void> {
     core.setOutput('affectedString', affected.join(','));
     core.info(`ℹ️ Setting affectedString output to ${affected.join(',')}`);
   } catch (error) {
-    core.setFailed(error.message);
+    core.setFailed(error);
   }
 }
 

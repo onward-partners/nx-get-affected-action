@@ -181,7 +181,7 @@ function run() {
             core.info(`ℹ️ Setting affectedString output to ${affected.join(',')}`);
         }
         catch (error) {
-            core.setFailed(error.message);
+            core.setFailed(error);
         }
     });
 }
