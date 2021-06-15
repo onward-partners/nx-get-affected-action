@@ -2,7 +2,7 @@
   "name": "@i40mc/nx-get-affected-action",
   "version": "1.0.12",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "This action returns the apps that got affected since the last build",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
