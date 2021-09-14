@@ -8,7 +8,7 @@ export async function getLastSuccessfulCommit(
 ): Promise<string> {
   const octokit = github.getOctokit(token);
   const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-  const res = await octokit.actions.listWorkflowRuns({
+  const res = await octokit.rest.actions.listWorkflowRuns({
     owner,
     repo,
     workflow_id: workflowId,
