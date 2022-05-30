@@ -243,6 +243,7 @@ exports.getNxAffectedApps = exports.locateNx = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const fs_1 = __nccwpck_require__(7147);
 const command_builder_1 = __nccwpck_require__(3250);
+const semverRegex = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/g;
 function loadPackageJson() {
     return __awaiter(this, void 0, void 0, function* () {
         return JSON.parse(yield fs_1.promises.readFile('package.json', 'utf8'));
@@ -289,21 +290,33 @@ function locateNx() {
                 () => new command_builder_1.CommandBuilder()
                     .withCommand('npm')
                     .withArgs('run', 'nx', '--')
-                    .build(),
+                    .build()
             ],
             [
                 'yarn',
                 'yarn.lock',
-                () => new command_builder_1.CommandBuilder().withCommand('yarn').withArgs('nx').build(),
+                () => new command_builder_1.CommandBuilder().withCommand('yarn').withArgs('nx').build()
             ],
             [
                 'pnpm',
                 'pnpm-lock.yaml',
-                () => new command_builder_1.CommandBuilder()
-                    .withCommand('pnpm')
-                    .withArgs('run', 'nx', '--')
-                    .build(),
-            ],
+                () => __awaiter(this, void 0, void 0, function* () {
+                    const versionExecutor = new command_builder_1.CommandBuilder()
+                        .withCommand('pnpm')
+                        .withArgs('--version')
+                        .build();
+                    const version = (yield versionExecutor())
+                        .filter(line => !!line && line !== '')
+                        .find(line => semverRegex.test(line.trim()));
+                    let builder = new command_builder_1.CommandBuilder()
+                        .withCommand('pnpm')
+                        .withArgs('run', 'nx');
+                    if (!(version === null || version === void 0 ? void 0 : version.startsWith('7'))) {
+                        builder = builder.withArgs('--');
+                    }
+                    return builder.build();
+                })
+            ]
         ]);
     });
 }
@@ -312,7 +325,7 @@ function getNxAffectedApps(lastSuccesfulCommitSha, nx) {
     return __awaiter(this, void 0, void 0, function* () {
         const args = [
             'affected:apps',
-            '--plain',
+            '--plain'
         ];
         if (lastSuccesfulCommitSha) {
             args.push(`--base=${lastSuccesfulCommitSha}`, '--head=HEAD');

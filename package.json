@@ -1,6 +1,6 @@
 {
   "name": "@i40mc/nx-get-affected-action",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "private": true,
   "description": "This action returns the apps that got affected since the last build",
   "main": "lib/main.js",
