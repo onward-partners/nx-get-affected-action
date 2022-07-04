@@ -181,9 +181,13 @@ const nx_1 = __nccwpck_require__(4003);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const lastSuccessfulCommit = yield core.group('🔍 Get commit with last sucessful build', () => __awaiter(this, void 0, void 0, function* () {
-                return (0, last_successful_commit_1.getLastSuccessfulCommit)(core.getInput('github_token'), core.getInput('workflow_id'), core.getInput('branch'));
-            }));
+            const all = core.getBooleanInput('all');
+            let lastSuccessfulCommit = null;
+            if (!all) {
+                lastSuccessfulCommit = yield core.group('🔍 Get commit with last sucessful build', () => __awaiter(this, void 0, void 0, function* () {
+                    return (0, last_successful_commit_1.getLastSuccessfulCommit)(core.getInput('github_token'), core.getInput('workflow_id'), core.getInput('branch'));
+                }));
+            }
             const nx = yield core.group('🔍 Ensuring Nx is available', nx_1.locateNx);
             const affected = yield core.group('🔍 Get affected Nx apps', () => __awaiter(this, void 0, void 0, function* () { return (0, nx_1.getNxAffectedApps)(lastSuccessfulCommit, nx); }));
             core.setOutput('affected', affected);

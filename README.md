@@ -6,15 +6,19 @@ This action gets the apps affected by the changes since the last successful buil
 
 ### `github_token`
 
-**Required** Your GitHub access token (see Usage below).
+**Required if `all` is NOT `true`** Your GitHub access token (see Usage below).
 
 ### `workflow_id`
 
-**Required** The `id` of the workflow to check against (e.g. main.yml).
+**Required if `all` is NOT `true`** The `id` of the workflow to check against (e.g. main.yml).
 
 ### `branch`
 
 Branch to get last successful commit from. Default: `main`
+
+### `all`
+
+Ignores all changes and prints the names of all apps. Default: `false`
 
 ## Outputs
 
