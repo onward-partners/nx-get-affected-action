@@ -14,9 +14,9 @@ async function run(): Promise<void> {
         '🔍 Get commit with last sucessful build',
         async () =>
           getLastSuccessfulCommit(
-            core.getInput('github_token'),
-            core.getInput('workflow_id'),
-            core.getInput('branch'),
+            core.getInput('github_token', { required: true }),
+            core.getInput('workflow_id', { required: true }),
+            core.getInput('branch', { required: true }),
           ),
       );
     }

@@ -185,7 +185,7 @@ function run() {
             let lastSuccessfulCommit = null;
             if (!all) {
                 lastSuccessfulCommit = yield core.group('🔍 Get commit with last sucessful build', () => __awaiter(this, void 0, void 0, function* () {
-                    return (0, last_successful_commit_1.getLastSuccessfulCommit)(core.getInput('github_token'), core.getInput('workflow_id'), core.getInput('branch'));
+                    return (0, last_successful_commit_1.getLastSuccessfulCommit)(core.getInput('github_token', { required: true }), core.getInput('workflow_id', { required: true }), core.getInput('branch', { required: true }));
                 }));
             }
             const nx = yield core.group('🔍 Ensuring Nx is available', nx_1.locateNx);
