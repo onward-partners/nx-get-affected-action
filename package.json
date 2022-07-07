@@ -1,15 +1,11 @@
 {
   "name": "@i40mc/nx-get-affected-action",
-  "version": "1.0.16",
   "private": true,
   "description": "This action returns the apps that got affected since the last build",
-  "main": "lib/main.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "lint": "eslint src/**/*.ts",
-    "package": "ncc build --source-map --license licenses.txt",
-    "test": "jest",
-    "all": "npm run build && npm run lint && npm run package"
+    "build": "ncc build ./src/main.ts",
+    "lint": "eslint src/**/*.ts"
   },
   "repository": {
     "type": "git",
@@ -23,22 +19,17 @@
   "author": "scomans",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.8.2",
+    "@actions/core": "^1.9.0",
     "@actions/exec": "^1.1.1",
     "@actions/github": "^5.0.3"
   },
   "devDependencies": {
-    "@types/jest": "^27.5.1",
     "@types/node": "^16.0.0",
-    "@typescript-eslint/parser": "^5.26.0",
+    "@typescript-eslint/parser": "^5.30.5",
     "@vercel/ncc": "^0.34.0",
-    "eslint": "^8.16.0",
+    "eslint": "^8.19.0",
     "eslint-plugin-github": "^4.3.6",
-    "eslint-plugin-jest": "^26.4.5",
-    "jest": "^28.1.0",
-    "jest-circus": "^28.1.0",
     "js-yaml": "^4.1.0",
-    "ts-jest": "^28.0.3",
-    "typescript": "^4.7.2"
+    "typescript": "^4.7.4"
   }
 }
