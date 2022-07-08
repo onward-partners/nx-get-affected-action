@@ -21,15 +21,19 @@ async function run(): Promise<void> {
       );
     }
 
-    const tagsString = core.getInput('tags', { trimWhitespace: true }) ?? '';
-    const tags = tagsString.replace(/\s/g, '').split(',').map(tag => tag.trim());
+    const tags = core
+      .getInput('tags', { trimWhitespace: true })
+      ?.replace(/\s/g, '')
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag !== '');
 
     const nx = await core.group('🔍 Ensuring Nx is available', locateNx);
     const affected = await core.group(
       '🔍 Get affected Nx apps',
       async () => getNxAffectedApps(
         lastSuccessfulCommit,
-        tags,
+        tags ?? [],
         nx,
       ),
     );
