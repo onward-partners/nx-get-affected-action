@@ -6,6 +6,9 @@ inputs:
     required: false
     description: 'Ignores all changes and prints the names of all apps'
     default: "false"
+  tags:
+    required: false
+    description: 'Comma seperated list of tags. Filter the resulting apps by the provided tags. App must have all specified tags to be included.'
   github_token:
     required: false
     description: 'GitHub token to talk to the API with'

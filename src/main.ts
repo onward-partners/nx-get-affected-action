@@ -21,10 +21,17 @@ async function run(): Promise<void> {
       );
     }
 
+    const tagsString = core.getInput('tags', { trimWhitespace: true }) ?? '';
+    const tags = tagsString.replace(/\s/g, '').split(',').map(tag => tag.trim());
+
     const nx = await core.group('🔍 Ensuring Nx is available', locateNx);
     const affected = await core.group(
       '🔍 Get affected Nx apps',
-      async () => getNxAffectedApps(lastSuccessfulCommit, nx),
+      async () => getNxAffectedApps(
+        lastSuccessfulCommit,
+        tags,
+        nx,
+      ),
     );
 
     core.setOutput('affected', affected);
