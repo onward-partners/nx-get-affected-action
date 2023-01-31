@@ -15,7 +15,7 @@ export class CommandBuilder {
     }
 
     return async (args?: string[], options?: exec.ExecOptions) => {
-      let result = []
+      let result = '';
       await exec.exec(
         this.command,
         [...this.args, ...(args ?? [])]
@@ -24,11 +24,11 @@ export class CommandBuilder {
         {
           ...options,
           listeners: {
-            stdline: data => result.push(data)
+            stdout: data => result += data.toString(),
           }
         }
       )
-      return result
+      return result.split('\n')
     }
   }
 

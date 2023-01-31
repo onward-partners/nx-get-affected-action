@@ -1,13 +1,25 @@
 import * as core from '@actions/core';
 import { readFile, stat } from 'fs/promises';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { CommandBuilder, CommandWrapper } from './command-builder';
+import { glob } from "glob";
+import { promisify } from "util";
 
 
 const semverRegex = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/g;
 
 interface PackageJsonLike {
   scripts?: Record<string, string>;
+}
+
+interface ProjectFileLike {
+  name: string;
+  tags: string[];
+}
+
+interface WorkspaceFileLike {
+  projects: Record<string, string>;
+  version?: number;
 }
 
 async function loadPackageJson(): Promise<PackageJsonLike> {
@@ -154,9 +166,23 @@ export async function getNxAffectedApps(
   return output;
 }
 
+async function getProjectFilesAsWorkspace(): Promise<WorkspaceFileLike> {
+  const projectFiles = await promisify(glob)('**/project.json')
+  const projects: Record<string, string> = {}
+  for (const projectFile of projectFiles) {
+    const projectContent = JSON.parse(await readFile(projectFile, 'utf-8'));
+    if ('name' in projectContent && projectContent.projectType === 'application') {
+      projects[projectContent.name] = dirname(projectFile)
+    }
+  }
+  return { projects }
+}
+
 async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[]> {
+  let workspaceContent: WorkspaceFileLike;
+  let splitProjects = false;
   try {
-    const workspaceContent = await tryLocate([
+    workspaceContent = await tryLocate([
       [
         'angular.json',
         'angular.json',
@@ -169,47 +195,47 @@ async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[
       ],
     ], (name) => `Using workspace file: ${ name }`);
 
-    const filteredApps: string[] = [];
-    const positiveTags = tags.filter(t => !t.startsWith('-:'))
-    const negativeTags = tags.filter(t => t.startsWith('-:'))
-    for (const app of apps) {
-      const appTags = await getProjectTags(app, workspaceContent);
-
-      const missesAllNegativeTags = negativeTags.every(tag => !appTags.includes(tag));
-      if (!missesAllNegativeTags) {
-        continue
-      }
-
-      const hasAllPositiveTags = positiveTags.every(tag => appTags.includes(tag));
-      if (!hasAllPositiveTags) {
-        continue
-      }
-
-      filteredApps.push(app);
-    }
-    return filteredApps;
-
   } catch (e) {
     if (e.message === 'Could not locate') {
-      throw new Error('Failed to find your workspace file (angular.json, workspace.json)');
+      workspaceContent = await getProjectFilesAsWorkspace();
+      splitProjects = true;
     } else {
       throw e;
     }
   }
+
+  const filteredApps: string[] = [];
+  const positiveTags = tags.filter(t => !t.startsWith('-:'))
+  const negativeTags = tags.filter(t => t.startsWith('-:')).map(t => t.substring(2))
+
+  for (const app of apps) {
+    const appTags = await getProjectTags(app, workspaceContent, splitProjects);
+
+    const missesAllNegativeTags = negativeTags.every(tag => !appTags.includes(tag));
+    if (!missesAllNegativeTags) {
+      continue
+    }
+
+    const hasAllPositiveTags = positiveTags.every(tag => appTags.includes(tag));
+    if (!hasAllPositiveTags) {
+      continue
+    }
+
+    filteredApps.push(app);
+  }
+  return filteredApps;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getProjectTags(app: string, workspace: any): Promise<string[]> {
-  if (workspace.version === 2) {
+async function getProjectTags(app: string, workspace: WorkspaceFileLike, splitProjects: boolean): Promise<string[]> {
+  if (workspace.version === 2 || splitProjects) {
     const path = workspace.projects[app];
     if (!path) {
       return [];
     }
     const workspaceContent = await readFile(join(path, 'project.json'), 'utf-8');
-    workspace = JSON.parse(workspaceContent);
+    const project = JSON.parse(workspaceContent) as ProjectFileLike;
+    return project.tags ?? []
   } else {
     throw new Error('Workspace version 2 required to filter by tags');
   }
-
-  return workspace.tags ?? [];
 }
