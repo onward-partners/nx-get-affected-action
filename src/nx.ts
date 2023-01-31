@@ -170,12 +170,22 @@ async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[
     ], (name) => `Using workspace file: ${ name }`);
 
     const filteredApps: string[] = [];
+    const positiveTags = tags.filter(t => !t.startsWith('-:'))
+    const negativeTags = tags.filter(t => t.startsWith('-:'))
     for (const app of apps) {
       const appTags = await getProjectTags(app, workspaceContent);
-      const hasAllTags = tags.every(tag => appTags.includes(tag));
-      if (hasAllTags) {
-        filteredApps.push(app);
+
+      const missesAllNegativeTags = negativeTags.every(tag => !appTags.includes(tag));
+      if (!missesAllNegativeTags) {
+        continue
       }
+
+      const hasAllPositiveTags = positiveTags.every(tag => appTags.includes(tag));
+      if (!hasAllPositiveTags) {
+        continue
+      }
+
+      filteredApps.push(app);
     }
     return filteredApps;
 

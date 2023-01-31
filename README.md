@@ -20,6 +20,10 @@ Branch to get last successful commit from. Default: `main`
 
 Ignores all changes and prints the names of all apps. Default: `false`
 
+### `tags`
+
+Project tags required for the app  to have in order to be listed. Tags an app should not have can be added with the `-:` prefix (ex. `-:test-app`).
+
 ## Outputs
 
 ### `affected`
