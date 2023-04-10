@@ -100,7 +100,7 @@ export async function locateNx(): Promise<CommandWrapper> {
             .withCommand('pnpm')
             .withArgs('run', 'nx');
 
-          if (!(version?.startsWith('7'))) {
+          if (version && !/^[78]/gm.test(version)) {
             builder = builder.withArgs('--');
           }
 
