@@ -2,8 +2,8 @@ import * as core from '@actions/core';
 import { readFile, stat } from 'fs/promises';
 import { dirname, join } from 'path';
 import { CommandBuilder, CommandWrapper } from './command-builder';
-import { glob } from "glob";
-import { promisify } from "util";
+import { glob } from 'glob';
+import { promisify } from 'util';
 
 
 const semverRegex = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/g;
@@ -29,20 +29,20 @@ async function loadPackageJson(): Promise<PackageJsonLike> {
 }
 
 async function assertHasNxPackageScript(): Promise<void> {
+  let packageJson: PackageJsonLike;
   try {
-    const packageJson = await loadPackageJson();
-
-    core.info('Found package.json file');
-
-    if (typeof packageJson.scripts?.nx !== 'string') {
-      throw new Error(`Failed to locate the 'nx' script in package.json, did you setup your project with Nx's CLI?`);
-    }
-
-    core.info(`Found 'nx' script inside package.json file`);
-
+    packageJson = await loadPackageJson();
   } catch (err) {
     throw new Error('Failed to load the \'package.json\' file, did you setup your project correctly?');
   }
+
+  core.info('Found package.json file');
+
+  if (typeof packageJson.scripts?.nx !== 'string') {
+    throw new Error(`Failed to locate the 'nx' script in package.json, did you setup your project with Nx's CLI?`);
+  }
+
+  core.info(`Found 'nx' script inside package.json file`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,15 +167,15 @@ export async function getNxAffectedApps(
 }
 
 async function getProjectFilesAsWorkspace(): Promise<WorkspaceFileLike> {
-  const projectFiles = await promisify(glob)('**/project.json')
-  const projects: Record<string, string> = {}
+  const projectFiles = await promisify(glob)('**/project.json');
+  const projects: Record<string, string> = {};
   for (const projectFile of projectFiles) {
     const projectContent = JSON.parse(await readFile(projectFile, 'utf-8'));
     if ('name' in projectContent && projectContent.projectType === 'application') {
-      projects[projectContent.name] = dirname(projectFile)
+      projects[projectContent.name] = dirname(projectFile);
     }
   }
-  return { projects }
+  return { projects };
 }
 
 async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[]> {
@@ -205,20 +205,20 @@ async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[
   }
 
   const filteredApps: string[] = [];
-  const positiveTags = tags.filter(t => !t.startsWith('-:'))
-  const negativeTags = tags.filter(t => t.startsWith('-:')).map(t => t.substring(2))
+  const positiveTags = tags.filter(t => !t.startsWith('-:'));
+  const negativeTags = tags.filter(t => t.startsWith('-:')).map(t => t.substring(2));
 
   for (const app of apps) {
     const appTags = await getProjectTags(app, workspaceContent, splitProjects);
 
     const missesAllNegativeTags = negativeTags.every(tag => !appTags.includes(tag));
     if (!missesAllNegativeTags) {
-      continue
+      continue;
     }
 
     const hasAllPositiveTags = positiveTags.every(tag => appTags.includes(tag));
     if (!hasAllPositiveTags) {
-      continue
+      continue;
     }
 
     filteredApps.push(app);
@@ -234,7 +234,7 @@ async function getProjectTags(app: string, workspace: WorkspaceFileLike, splitPr
     }
     const workspaceContent = await readFile(join(path, 'project.json'), 'utf-8');
     const project = JSON.parse(workspaceContent) as ProjectFileLike;
-    return project.tags ?? []
+    return project.tags ?? [];
   } else {
     throw new Error('Workspace version 2 required to filter by tags');
   }
