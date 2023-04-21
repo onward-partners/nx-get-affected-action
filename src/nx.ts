@@ -4,9 +4,15 @@ import { dirname, join } from 'path';
 import { CommandBuilder, CommandWrapper } from './command-builder';
 import { glob } from 'glob';
 import { promisify } from 'util';
+import { eq, gt, gte, lt, lte } from "semver";
 
 
 const semverRegex = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/g;
+
+interface NxVersion {
+  local: string | null;
+  global: string | null;
+}
 
 interface PackageJsonLike {
   scripts?: Record<string, string>;
@@ -117,15 +123,69 @@ export async function locateNx(): Promise<CommandWrapper> {
   }
 }
 
+async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
+  const versions = {
+    local: null,
+    global: null
+  }
+
+  const output = await nx(['--version']);
+
+  const localRegex = /-\sLocal:\sv(.*)/gm;
+  const globalRegex = /-\sGlobal:\sv(.*)/gm;
+
+  for (const line of output) {
+    let match = localRegex.exec(line)
+    if (match?.[1] && match[1].toLowerCase() !== 'not found') {
+      versions.local = match[1]
+      continue;
+    }
+    match = globalRegex.exec(line)
+    if (match?.[1] && match[1].toLowerCase() !== 'not found') {
+      versions.local = match[1]
+    }
+  }
+
+  return versions;
+}
+
+function checkVersion(versions: NxVersion, version: string, operation: '>' | '>=' | '<' | '<=' | '=' = '='): boolean {
+  const nxVersion = versions.local ?? versions.global;
+  switch (operation) {
+    case ">":
+      return gt(nxVersion, version)
+    case "<":
+      return lt(nxVersion, version)
+    case "<=":
+      return lte(nxVersion, version)
+    case ">=":
+      return gte(nxVersion, version)
+    default:
+      return eq(nxVersion, version)
+  }
+}
+
 export async function getNxAffectedApps(
   lastSuccesfulCommitSha: string,
   tags: string[],
   nx: CommandWrapper,
 ): Promise<string[]> {
-  const args = [
-    'affected:apps',
-    '--plain',
-  ];
+  const nxVersions = await getNxVersions(nx);
+
+  const args: string[] = [];
+
+  if (checkVersion(nxVersions, '15.0.0', '>=')) {
+    args.push(
+      'print-affected',
+      '--type=app',
+    );
+  } else {
+    args.push(
+      'affected:apps',
+      '--plain',
+    );
+  }
+
   if (lastSuccesfulCommitSha) {
     args.push(
       `--base=${ lastSuccesfulCommitSha }`,
@@ -137,33 +197,45 @@ export async function getNxAffectedApps(
     );
   }
   let output = await nx(args);
-  core.debug(`CONTENT>>${ output }<<`);
-  output = output
-    .map(line => line.trim())
-    .filter(line => line !== '')
-    .map(line => {
-      core.debug(`LINE>>${ line }<<`);
-      return line;
-    });
-  const iStart = output.findIndex(line => line.includes('nx') && line.includes('affected:apps'));
-  const iEnd = output.findIndex(line => line.startsWith('Done in'));
-  core.debug(`iStart: ${ iStart }`);
-  core.debug(`iEnd: ${ iEnd }`);
-  if (iStart !== -1 && (iEnd === iStart + 2 || iEnd === -1)) {
-    output = [output[iStart + 1]];
+  let apps: string[]
+
+  if (checkVersion(nxVersions, '15.0.0', '>=')) {
+    // find the JSON part
+    const jsonIndex = output.findIndex(line => line === '{')
+    // parse JSON
+    const affectedJson = JSON.parse(output.slice(jsonIndex).join(''))
+    // the projects property contains all affected apps
+    apps = affectedJson.projects
   } else {
-    output = [];
+    core.debug(`CONTENT>>${ output }<<`);
+    output = output
+      .map(line => line.trim())
+      .filter(line => line !== '')
+      .map(line => {
+        core.debug(`LINE>>${ line }<<`);
+        return line;
+      });
+    const iStart = output.findIndex(line => line.includes('nx') && line.includes('affected:apps'));
+    const iEnd = output.findIndex(line => line.startsWith('Done in'));
+    core.debug(`iStart: ${ iStart }`);
+    core.debug(`iEnd: ${ iEnd }`);
+    if (iStart !== -1 && (iEnd === iStart + 2 || iEnd === -1)) {
+      output = [output[iStart + 1]];
+    } else {
+      output = [];
+    }
+
+    apps = output
+      .join(' ')
+      .split(/\s+/gm)
+      .filter(line => line !== '')
   }
-  output = output
-    .join(' ')
-    .split(/\s+/gm)
-    .filter(line => line !== '');
 
   if (tags.length > 0) {
-    output = await filterAppsByTags(output, tags);
+    apps = await filterAppsByTags(apps, tags);
   }
 
-  return output;
+  return apps;
 }
 
 async function getProjectFilesAsWorkspace(): Promise<WorkspaceFileLike> {
