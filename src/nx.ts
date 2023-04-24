@@ -131,11 +131,13 @@ async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
 
   const output = await nx(['--version']);
 
-  const localRegex = /-\sLocal:\sv(.*)/gm;
-  const globalRegex = /-\sGlobal:\sv(.*)/gm;
+  const legacyRegex = /^(\d+.*)/gm;
+  const localRegex = /-\sLocal:\sv(\d+.*)/gm;
+  const globalRegex = /-\sGlobal:\sv(\d+.*)/gm;
 
+  let match: RegExpExecArray;
   for (const line of output) {
-    let match = localRegex.exec(line)
+    match = localRegex.exec(line)
     if (match?.[1] && match[1].toLowerCase() !== 'not found') {
       versions.local = match[1]
       continue;
@@ -143,6 +145,12 @@ async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
     match = globalRegex.exec(line)
     if (match?.[1] && match[1].toLowerCase() !== 'not found') {
       versions.local = match[1]
+      continue;
+    }
+    match = legacyRegex.exec(line)
+    if (match?.[1] && match[1].toLowerCase() !== 'not found') {
+      versions.local = match[1]
+      break;
     }
   }
 
