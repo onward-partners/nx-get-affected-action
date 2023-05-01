@@ -144,7 +144,7 @@ async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
     }
     match = globalRegex.exec(line)
     if (match?.[1] && match[1].toLowerCase() !== 'not found') {
-      versions.local = match[1]
+      versions.global = match[1]
       continue;
     }
     match = legacyRegex.exec(line)
