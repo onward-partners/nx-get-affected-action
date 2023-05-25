@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import { CommandBuilder, CommandWrapper } from './command-builder';
 import { glob } from 'glob';
 import { promisify } from 'util';
-import { eq, gt, gte, lt, lte } from "semver";
+import { eq, gt, gte, lt, lte } from 'semver';
 
 
 const semverRegex = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/g;
@@ -21,6 +21,7 @@ interface PackageJsonLike {
 interface ProjectFileLike {
   name: string;
   tags: string[];
+  projectType: string;
 }
 
 interface WorkspaceFileLike {
@@ -126,8 +127,8 @@ export async function locateNx(): Promise<CommandWrapper> {
 async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
   const versions = {
     local: null,
-    global: null
-  }
+    global: null,
+  };
 
   const output = await nx(['--version']);
 
@@ -137,19 +138,19 @@ async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
 
   let match: RegExpExecArray;
   for (const line of output) {
-    match = localRegex.exec(line)
+    match = localRegex.exec(line);
     if (match?.[1] && match[1].toLowerCase() !== 'not found') {
-      versions.local = match[1]
+      versions.local = match[1];
       continue;
     }
-    match = globalRegex.exec(line)
+    match = globalRegex.exec(line);
     if (match?.[1] && match[1].toLowerCase() !== 'not found') {
-      versions.global = match[1]
+      versions.global = match[1];
       continue;
     }
-    match = legacyRegex.exec(line)
+    match = legacyRegex.exec(line);
     if (match?.[1] && match[1].toLowerCase() !== 'not found') {
-      versions.local = match[1]
+      versions.local = match[1];
       break;
     }
   }
@@ -160,16 +161,16 @@ async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
 function checkVersion(versions: NxVersion, version: string, operation: '>' | '>=' | '<' | '<=' | '=' = '='): boolean {
   const nxVersion = versions.local ?? versions.global;
   switch (operation) {
-    case ">":
-      return gt(nxVersion, version)
-    case "<":
-      return lt(nxVersion, version)
-    case "<=":
-      return lte(nxVersion, version)
-    case ">=":
-      return gte(nxVersion, version)
+    case '>':
+      return gt(nxVersion, version);
+    case '<':
+      return lt(nxVersion, version);
+    case '<=':
+      return lte(nxVersion, version);
+    case '>=':
+      return gte(nxVersion, version);
     default:
-      return eq(nxVersion, version)
+      return eq(nxVersion, version);
   }
 }
 
@@ -180,7 +181,7 @@ export async function getNxAffectedApps(
 ): Promise<string[]> {
   const nxVersions = await getNxVersions(nx);
 
-  const args: string[] = [];
+  let args: string[] = [];
 
   if (checkVersion(nxVersions, '15.0.0', '>=')) {
     args.push(
@@ -194,26 +195,34 @@ export async function getNxAffectedApps(
     );
   }
 
+  let appListWorkaround = false;
   if (lastSuccesfulCommitSha) {
     args.push(
       `--base=${ lastSuccesfulCommitSha }`,
       '--head=HEAD',
     );
   } else {
-    args.push(
-      '--all',
-    );
+    if (checkVersion(nxVersions, '15.0.0', '>=')) {
+      appListWorkaround = true;
+      args = [
+        'show', 'projects',
+      ];
+    } else {
+      args.push(
+        '--all',
+      );
+    }
   }
   let output = await nx(args);
-  let apps: string[]
+  let apps: string[];
 
-  if (checkVersion(nxVersions, '15.0.0', '>=')) {
+  if (!appListWorkaround && checkVersion(nxVersions, '15.0.0', '>=')) {
     // find the JSON part
-    const jsonIndex = output.findIndex(line => line === '{')
+    const jsonIndex = output.findIndex(line => line === '{');
     // parse JSON
-    const affectedJson = JSON.parse(output.slice(jsonIndex).join(''))
+    const affectedJson = JSON.parse(output.slice(jsonIndex).join(''));
     // the projects property contains all affected apps
-    apps = affectedJson.projects
+    apps = affectedJson.projects;
   } else {
     core.debug(`CONTENT>>${ output }<<`);
     output = output
@@ -236,9 +245,12 @@ export async function getNxAffectedApps(
     apps = output
       .join(' ')
       .split(/\s+/gm)
-      .filter(line => line !== '')
+      .filter(line => line !== '');
   }
 
+  if (appListWorkaround) {
+    apps = await filterProjectByType(apps);
+  }
   if (tags.length > 0) {
     apps = await filterAppsByTags(apps, tags);
   }
@@ -306,6 +318,44 @@ async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[
   return filteredApps;
 }
 
+async function filterProjectByType(apps: string[], type = 'application'): Promise<string[]> {
+  let workspaceContent: WorkspaceFileLike;
+  let splitProjects = false;
+  try {
+    workspaceContent = await tryLocate([
+      [
+        'angular.json',
+        'angular.json',
+        async () => JSON.parse(await readFile('angular.json', 'utf-8')),
+      ],
+      [
+        'workspace.json',
+        'workspace.json',
+        async () => JSON.parse(await readFile('workspace.json', 'utf-8')),
+      ],
+    ], (name) => `Using workspace file: ${ name }`);
+
+  } catch (e) {
+    if (e.message === 'Could not locate') {
+      workspaceContent = await getProjectFilesAsWorkspace();
+      splitProjects = true;
+    } else {
+      throw e;
+    }
+  }
+
+  const filteredApps: string[] = [];
+
+  for (const app of apps) {
+    const appType = await getProjectType(app, workspaceContent, splitProjects);
+    if (appType !== type) {
+      continue;
+    }
+    filteredApps.push(app);
+  }
+  return filteredApps;
+}
+
 async function getProjectTags(app: string, workspace: WorkspaceFileLike, splitProjects: boolean): Promise<string[]> {
   if (workspace.version === 2 || splitProjects) {
     const path = workspace.projects[app];
@@ -315,6 +365,20 @@ async function getProjectTags(app: string, workspace: WorkspaceFileLike, splitPr
     const workspaceContent = await readFile(join(path, 'project.json'), 'utf-8');
     const project = JSON.parse(workspaceContent) as ProjectFileLike;
     return project.tags ?? [];
+  } else {
+    throw new Error('Workspace version 2 required to filter by tags');
+  }
+}
+
+async function getProjectType(app: string, workspace: WorkspaceFileLike, splitProjects: boolean): Promise<string> {
+  if (workspace.version === 2 || splitProjects) {
+    const path = workspace.projects[app];
+    if (!path) {
+      return undefined;
+    }
+    const workspaceContent = await readFile(join(path, 'project.json'), 'utf-8');
+    const project = JSON.parse(workspaceContent) as ProjectFileLike;
+    return project.projectType;
   } else {
     throw new Error('Workspace version 2 required to filter by tags');
   }
