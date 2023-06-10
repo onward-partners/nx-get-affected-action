@@ -14,7 +14,6 @@ export async function getLastSuccessfulCommit(
     workflow_id: workflowId,
     status: 'success',
     branch,
-    event: 'push',
   });
   const result = res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : null;
   core.info(`ℹ️ Last successful build: ${result}`);
