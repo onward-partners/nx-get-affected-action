@@ -3,7 +3,6 @@ import { readFile, stat } from 'fs/promises';
 import { dirname, join } from 'path';
 import { CommandBuilder, CommandWrapper } from './command-builder';
 import { glob } from 'glob';
-import { promisify } from 'util';
 import { eq, gt, gte, lt, lte } from 'semver';
 
 
@@ -264,7 +263,7 @@ export async function getNxAffectedApps(
 }
 
 async function getProjectFilesAsWorkspace(): Promise<WorkspaceFileLike> {
-  const projectFiles = await promisify(glob)('**/project.json');
+  const projectFiles = await glob('**/project.json');
   const projects: Record<string, string> = {};
   for (const projectFile of projectFiles) {
     const projectContent = JSON.parse(await readFile(projectFile, 'utf-8'));
