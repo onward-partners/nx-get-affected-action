@@ -20,6 +20,7 @@ export async function getLastSuccessfulCommit(
   if (result) {
     const valid = await checkCommitHash(result);
     if (!valid) {
+      core.info(`ℹ️ Commit hash of previous build not valid: ${ result }`);
       result = null;
     }
   }
