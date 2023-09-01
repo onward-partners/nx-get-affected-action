@@ -29,6 +29,10 @@ export async function getLastSuccessfulCommit(
 }
 
 async function checkCommitHash(hash: string): Promise<boolean> {
-  const result = await exec('git', ['cat-file', '-e', hash]);
-  return result === 0;
+  try {
+    const result = await exec('git', ['cat-file', '-e', hash]);
+    return result === 0;
+  } catch (error) {
+    return false;
+  }
 }
