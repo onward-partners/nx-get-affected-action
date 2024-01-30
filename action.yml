@@ -27,5 +27,5 @@ outputs:
     description: 'A comma seperated string of all affected apps'
 
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
