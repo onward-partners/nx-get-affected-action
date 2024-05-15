@@ -178,11 +178,18 @@ export async function getNxAffectedApps(
   tags: string[],
   nx: CommandWrapper,
 ): Promise<string[]> {
-  const nxVersions = await getNxVersions(nx);
+  const versions = await getNxVersions(nx);
 
   let args: string[] = [];
 
-  if (checkVersion(nxVersions, '15.0.0', '>=')) {
+  if (checkVersion(versions, '19.0.0', '>=')) {
+    args.push(
+      'show',
+      'projects',
+      '--type=app',
+      '--json',
+    );
+  } else if (checkVersion(versions, '15.0.0', '>=')) {
     args.push(
       'print-affected',
       '--type=app',
@@ -196,17 +203,22 @@ export async function getNxAffectedApps(
 
   let appListWorkaround = false;
   if (lastSuccesfulCommitSha) {
+    if (checkVersion(versions, '19.0.0', '>=')) {
+      args.push(
+        '--affected',
+      );
+    }
     args.push(
       `--base=${ lastSuccesfulCommitSha }`,
       '--head=HEAD',
     );
   } else {
-    if (checkVersion(nxVersions, '15.0.0', '>=')) {
+    if (checkVersion(versions, '15.0.0', '>=') && checkVersion(versions, '19.0.0', '<')) {
       appListWorkaround = true;
       args = [
         'show', 'projects',
       ];
-    } else {
+    } else if (checkVersion(versions, '15.0.0', '<')) {
       args.push(
         '--all',
       );
@@ -215,7 +227,9 @@ export async function getNxAffectedApps(
   let output = await nx(args);
   let apps: string[];
 
-  if (!appListWorkaround && checkVersion(nxVersions, '15.0.0', '>=')) {
+  if (checkVersion(versions, '19.0.0', '>=')) {
+    apps = JSON.parse(output.join(''));
+  } else if (!appListWorkaround && checkVersion(versions, '15.0.0', '>=')) {
     // find the JSON part
     const jsonIndex = output.findIndex(line => line === '{');
     // parse JSON
