@@ -228,7 +228,7 @@ export async function getNxAffectedApps(
   let apps: string[];
 
   if (checkVersion(versions, '19.0.0', '>=')) {
-    apps = JSON.parse(output.join(''));
+    apps = JSON.parse(output.find(line => line.startsWith('[')));
   } else if (!appListWorkaround && checkVersion(versions, '15.0.0', '>=')) {
     // find the JSON part
     const jsonIndex = output.findIndex(line => line === '{');
