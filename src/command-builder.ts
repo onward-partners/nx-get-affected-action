@@ -1,17 +1,17 @@
-import * as exec from '@actions/exec'
+import * as exec from '@actions/exec';
 
 export type CommandWrapper = (
   args?: string[],
-  options?: exec.ExecOptions
+  options?: exec.ExecOptions,
 ) => Promise<string[]>
 
 export class CommandBuilder {
-  private command = ''
-  private args: string[] = []
+  private command = '';
+  private args: string[] = [];
 
   build(): CommandWrapper {
     if (!this.command) {
-      throw new Error('No command given to CommandWrapper')
+      throw new Error('No command given to CommandWrapper');
     }
 
     return async (args?: string[], options?: exec.ExecOptions) => {
@@ -25,20 +25,21 @@ export class CommandBuilder {
           ...options,
           listeners: {
             stdout: data => result += data.toString(),
-          }
-        }
-      )
-      return result.split('\n')
-    }
+          },
+        },
+      );
+
+      return result.split('\n');
+    };
   }
 
   withCommand(command: string): this {
-    this.command = command
-    return this
+    this.command = command;
+    return this;
   }
 
   withArgs(...args: string[]): this {
-    Array.prototype.push.apply(this.args, args)
-    return this
+    Array.prototype.push.apply(this.args, args);
+    return this;
   }
 }

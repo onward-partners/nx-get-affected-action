@@ -218,6 +218,6 @@ async function filterAppsByTags(apps: string[], tags: string[], nx: CommandWrapp
 
 async function getProjectTags(app: string, nx: CommandWrapper): Promise<string[]> {
   const projectJson = await nx(['show', 'project', app, '--json']);
-  const project = JSON.parse(projectJson.join('\n'));
+  const project = JSON.parse(projectJson.find(line => line.startsWith('{')));
   return project.tags ?? [];
 }
