@@ -1,8 +1,6 @@
 import * as core from '@actions/core';
 import { readFile, stat } from 'fs/promises';
-import { dirname, join } from 'path';
 import { CommandBuilder, CommandWrapper } from './command-builder';
-import { glob } from 'glob';
 import { eq, gt, gte, lt, lte } from 'semver';
 
 
@@ -15,17 +13,6 @@ interface NxVersion {
 
 interface PackageJsonLike {
   scripts?: Record<string, string>;
-}
-
-interface ProjectFileLike {
-  name: string;
-  tags: string[];
-  projectType: string;
-}
-
-interface WorkspaceFileLike {
-  projects: Record<string, string>;
-  version?: number;
 }
 
 async function loadPackageJson(): Promise<PackageJsonLike> {
@@ -200,56 +187,19 @@ export async function getNxAffectedApps(
   let output = await nx(args);
   let apps: string[] = JSON.parse(output.find(line => line.startsWith('[')));
   if (tags.length > 0) {
-    apps = await filterAppsByTags(apps, tags);
+    apps = await filterAppsByTags(apps, tags, nx);
   }
 
   return apps;
 }
 
-async function getProjectFilesAsWorkspace(): Promise<WorkspaceFileLike> {
-  const projectFiles = await glob('**/project.json');
-  const projects: Record<string, string> = {};
-  for (const projectFile of projectFiles) {
-    const projectContent = JSON.parse(await readFile(projectFile, 'utf-8'));
-    if ('name' in projectContent && projectContent.projectType === 'application') {
-      projects[projectContent.name] = dirname(projectFile);
-    }
-  }
-  return { projects };
-}
-
-async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[]> {
-  let workspaceContent: WorkspaceFileLike;
-  let splitProjects = false;
-  try {
-    workspaceContent = await tryLocate([
-      [
-        'angular.json',
-        'angular.json',
-        async () => JSON.parse(await readFile('angular.json', 'utf-8')),
-      ],
-      [
-        'workspace.json',
-        'workspace.json',
-        async () => JSON.parse(await readFile('workspace.json', 'utf-8')),
-      ],
-    ], (name) => `Using workspace file: ${ name }`);
-
-  } catch (e) {
-    if (e.message === 'Could not locate') {
-      workspaceContent = await getProjectFilesAsWorkspace();
-      splitProjects = true;
-    } else {
-      throw e;
-    }
-  }
-
+async function filterAppsByTags(apps: string[], tags: string[], nx: CommandWrapper): Promise<string[]> {
   const filteredApps: string[] = [];
   const positiveTags = tags.filter(t => !t.startsWith('-:'));
   const negativeTags = tags.filter(t => t.startsWith('-:')).map(t => t.substring(2));
 
   for (const app of apps) {
-    const appTags = await getProjectTags(app, workspaceContent, splitProjects);
+    const appTags = await getProjectTags(app, nx);
 
     const missesAllNegativeTags = negativeTags.every(tag => !appTags.includes(tag));
     if (!missesAllNegativeTags) {
@@ -266,16 +216,8 @@ async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[
   return filteredApps;
 }
 
-async function getProjectTags(app: string, workspace: WorkspaceFileLike, splitProjects: boolean): Promise<string[]> {
-  if (workspace.version === 2 || splitProjects) {
-    const path = workspace.projects[app];
-    if (!path) {
-      return [];
-    }
-    const workspaceContent = await readFile(join(path, 'project.json'), 'utf-8');
-    const project = JSON.parse(workspaceContent) as ProjectFileLike;
-    return project.tags ?? [];
-  } else {
-    throw new Error('Workspace version 2 required to filter by tags');
-  }
+async function getProjectTags(app: string, nx: CommandWrapper): Promise<string[]> {
+  const projectJson = await nx(['show', 'project', app, '--json']);
+  const project = JSON.parse(projectJson.join('\n'));
+  return project.tags ?? [];
 }
