@@ -179,96 +179,26 @@ export async function getNxAffectedApps(
   nx: CommandWrapper,
 ): Promise<string[]> {
   const versions = await getNxVersions(nx);
-
-  let args: string[] = [];
-
-  if (checkVersion(versions, '19.0.0', '>=')) {
-    args.push(
-      'show',
-      'projects',
-      '--type=app',
-      '--json',
-    );
-  } else if (checkVersion(versions, '15.0.0', '>=')) {
-    args.push(
-      'print-affected',
-      '--type=app',
-    );
-  } else {
-    args.push(
-      'affected:apps',
-      '--plain',
-    );
+  if (!checkVersion(versions, '19.0.0', '>=')) {
+    throw new Error('Nx version 19.0.0 or higher is required to use this action');
   }
 
-  let appListWorkaround = false;
+  let args: string[] = [
+    'show',
+    'projects',
+    '--type=app',
+    '--json',
+  ];
+
   if (lastSuccesfulCommitSha) {
-    if (checkVersion(versions, '19.0.0', '>=')) {
-      args.push(
-        '--affected',
-      );
-    }
     args.push(
+      '--affected',
       `--base=${ lastSuccesfulCommitSha }`,
       '--head=HEAD',
     );
-  } else {
-    if (checkVersion(versions, '15.0.0', '>=') && checkVersion(versions, '19.0.0', '<')) {
-      appListWorkaround = true;
-      args = [
-        'show', 'projects',
-      ];
-    } else if (checkVersion(versions, '15.0.0', '<')) {
-      args.push(
-        '--all',
-      );
-    }
   }
   let output = await nx(args);
-  let apps: string[];
-
-  if (checkVersion(versions, '19.0.0', '>=')) {
-    apps = JSON.parse(output.find(line => line.startsWith('[')));
-  } else if (!appListWorkaround && checkVersion(versions, '15.0.0', '>=')) {
-    // find the JSON part
-    const jsonIndex = output.findIndex(line => line === '{');
-    // parse JSON
-    const affectedJson = JSON.parse(output.slice(jsonIndex).join(''));
-    // the projects property contains all affected apps
-    apps = affectedJson.projects;
-  } else {
-    core.debug(`CONTENT>>${ output }<<`);
-    output = output
-      .map(line => line.trim())
-      .filter(line => line !== '')
-      .map(line => {
-        core.debug(`LINE>>${ line }<<`);
-        return line;
-      });
-    if (!appListWorkaround) {
-      const iStart = output.findIndex(line => line.includes('nx') && line.includes('affected:apps'));
-      const iEnd = output.findIndex(line => line.startsWith('Done in'));
-      core.debug(`iStart: ${ iStart }`);
-      core.debug(`iEnd: ${ iEnd }`);
-      if (iStart !== -1 && (iEnd === iStart + 2 || iEnd === -1)) {
-        output = [output[iStart + 1]];
-      } else {
-        output = [];
-      }
-    } else {
-      const iStart = output.findIndex(line => line.includes('nx') && line.includes('show') && line.includes('projects'));
-      output = output.slice(iStart + 1);
-    }
-
-    apps = output
-      .join(' ')
-      .split(/\s+/gm)
-      .filter(line => line !== '');
-  }
-
-  if (appListWorkaround) {
-    apps = await filterProjectByType(apps);
-  }
+  let apps: string[] = JSON.parse(output.find(line => line.startsWith('[')));
   if (tags.length > 0) {
     apps = await filterAppsByTags(apps, tags);
   }
@@ -336,44 +266,6 @@ async function filterAppsByTags(apps: string[], tags: string[]): Promise<string[
   return filteredApps;
 }
 
-async function filterProjectByType(apps: string[], type = 'application'): Promise<string[]> {
-  let workspaceContent: WorkspaceFileLike;
-  let splitProjects = false;
-  try {
-    workspaceContent = await tryLocate([
-      [
-        'angular.json',
-        'angular.json',
-        async () => JSON.parse(await readFile('angular.json', 'utf-8')),
-      ],
-      [
-        'workspace.json',
-        'workspace.json',
-        async () => JSON.parse(await readFile('workspace.json', 'utf-8')),
-      ],
-    ], (name) => `Using workspace file: ${ name }`);
-
-  } catch (e) {
-    if (e.message === 'Could not locate') {
-      workspaceContent = await getProjectFilesAsWorkspace();
-      splitProjects = true;
-    } else {
-      throw e;
-    }
-  }
-
-  const filteredApps: string[] = [];
-
-  for (const app of apps) {
-    const appType = await getProjectType(app, workspaceContent, splitProjects);
-    if (appType !== type) {
-      continue;
-    }
-    filteredApps.push(app);
-  }
-  return filteredApps;
-}
-
 async function getProjectTags(app: string, workspace: WorkspaceFileLike, splitProjects: boolean): Promise<string[]> {
   if (workspace.version === 2 || splitProjects) {
     const path = workspace.projects[app];
@@ -385,19 +277,5 @@ async function getProjectTags(app: string, workspace: WorkspaceFileLike, splitPr
     return project.tags ?? [];
   } else {
     throw new Error('Workspace version 2 required to filter by tags');
-  }
-}
-
-async function getProjectType(app: string, workspace: WorkspaceFileLike, splitProjects: boolean): Promise<string> {
-  if (workspace.version === 2 || splitProjects) {
-    const path = workspace.projects[app];
-    if (!path) {
-      return undefined;
-    }
-    const workspaceContent = await readFile(join(path, 'project.json'), 'utf-8');
-    const project = JSON.parse(workspaceContent) as ProjectFileLike;
-    return project.projectType;
-  } else {
-    throw new Error('Workspace version 2 required to get project type');
   }
 }

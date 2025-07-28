@@ -1,4 +1,4 @@
-# Get affected Nx apps action
+# Get affected Nx (version 19+) apps action
 
 This action gets the apps affected by the changes since the last successful build and sets them as outputs.
 
@@ -49,7 +49,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: i40MC/nx-get-affected-action@v1
+      - uses: i40MC/nx-get-affected-action@v3
         id: affected_apps
         with:
           branch: 'main'
