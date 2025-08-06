@@ -194,12 +194,18 @@ export async function getNxAffectedApps(
 }
 
 async function filterAppsByTags(apps: string[], tags: string[], nx: CommandWrapper): Promise<string[]> {
-  const filteredApps: string[] = [];
   const positiveTags = tags.filter(t => !t.startsWith('-:'));
   const negativeTags = tags.filter(t => t.startsWith('-:')).map(t => t.substring(2));
 
-  for (const app of apps) {
-    const appTags = await getProjectTags(app, nx);
+  // Get all project tags in parallel
+  const appTagsPromises = apps.map(app => getProjectTags(app, nx));
+  const allAppTags = await Promise.all(appTagsPromises);
+
+  // Filter apps based on their tags
+  const filteredApps: string[] = [];
+  for (let i = 0; i < apps.length; i++) {
+    const app = apps[i];
+    const appTags = allAppTags[i];
 
     const missesAllNegativeTags = negativeTags.every(tag => !appTags.includes(tag));
     if (!missesAllNegativeTags) {
