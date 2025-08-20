@@ -186,6 +186,7 @@ export async function getNxAffectedApps(
   }
   let output = await nx(args);
   let apps: string[] = JSON.parse(output.find(line => line.startsWith('[')));
+  apps.sort((a, b) => a.localeCompare(b));
   if (tags.length > 0) {
     apps = await filterAppsByTags(apps, tags, nx);
   }
