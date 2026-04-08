@@ -1,11 +1,11 @@
-name: '@i40mc/nx-get-affected-action'
+name: '@onward-partners/nx-get-affected-action'
 description: 'This action returns the apps that got affected since the last build'
 author: 'scomans'
 inputs:
   all:
     required: false
     description: 'Ignores all changes and prints the names of all apps'
-    default: "false"
+    default: 'false'
   tags:
     required: false
     description: 'Comma seperated list of tags. Filter the resulting apps by the provided tags. App must have all specified tags to be included.'

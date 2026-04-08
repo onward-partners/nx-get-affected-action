@@ -22,7 +22,7 @@ Ignores all changes and prints the names of all apps. Default: `false`
 
 ### `tags`
 
-Project tags required for the app  to have in order to be listed. Tags an app should not have can be added with the `-:` prefix (ex. `-:test-app`).
+Project tags required for the app to have in order to be listed. Tags an app should not have can be added with the `-:` prefix (ex. `-:test-app`).
 
 ## Outputs
 
@@ -45,7 +45,7 @@ jobs:
       affected: ${{ steps.affected_apps.outputs.affected }}
       affectedString: ${{ steps.affected_apps.outputs.affectedString }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -63,11 +63,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v6
         with:
-          node-version: '14'
+          node-version: '24'
 
       - name: Build app A
         run: yarn run build

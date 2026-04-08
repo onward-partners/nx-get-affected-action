@@ -1,10 +1,10 @@
 import * as core from '@actions/core';
 import { readFile, stat } from 'fs/promises';
-import { CommandBuilder, CommandWrapper } from './command-builder';
+import { CommandBuilder, CommandWrapper } from './command-builder.js';
 import { eq, gt, gte, lt, lte } from 'semver';
 
-
-const semverRegex = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/g;
+const semverRegex =
+  /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/g;
 
 interface NxVersion {
   local: string | null;
@@ -16,9 +16,7 @@ interface PackageJsonLike {
 }
 
 async function loadPackageJson(): Promise<PackageJsonLike> {
-  return JSON.parse(
-    await readFile('package.json', 'utf8'),
-  ) as PackageJsonLike;
+  return JSON.parse(await readFile('package.json', 'utf8')) as PackageJsonLike;
 }
 
 async function assertHasNxPackageScript(): Promise<void> {
@@ -26,13 +24,17 @@ async function assertHasNxPackageScript(): Promise<void> {
   try {
     packageJson = await loadPackageJson();
   } catch (err) {
-    throw new Error('Failed to load the \'package.json\' file, did you setup your project correctly?');
+    throw new Error(
+      "Failed to load the 'package.json' file, did you setup your project correctly?",
+    );
   }
 
   core.info('Found package.json file');
 
   if (typeof packageJson.scripts?.nx !== 'string') {
-    throw new Error(`Failed to locate the 'nx' script in package.json, did you setup your project with Nx's CLI?`);
+    throw new Error(
+      `Failed to locate the 'nx' script in package.json, did you setup your project with Nx's CLI?`,
+    );
   }
 
   core.info(`Found 'nx' script inside package.json file`);
@@ -61,47 +63,44 @@ export async function locateNx(): Promise<CommandWrapper> {
   await assertHasNxPackageScript();
 
   try {
-    return tryLocate([
+    return tryLocate(
       [
-        'npm',
-        'package-lock.json',
-        () =>
-          new CommandBuilder()
-            .withCommand('npm')
-            .withArgs('run', 'nx', '--')
-            .build(),
+        [
+          'npm',
+          'package-lock.json',
+          () => new CommandBuilder().withCommand('npm').withArgs('run', 'nx', '--').build(),
+        ],
+        [
+          'yarn',
+          'yarn.lock',
+          () => new CommandBuilder().withCommand('yarn').withArgs('nx').build(),
+        ],
+        [
+          'pnpm',
+          'pnpm-lock.yaml',
+          async () => {
+            const versionExecutor = new CommandBuilder()
+              .withCommand('pnpm')
+              .withArgs('--version')
+              .build();
+
+            const version = (await versionExecutor())
+              .filter(line => !!line && line !== '')
+              .find(line => semverRegex.test(line.trim()));
+
+            let builder = new CommandBuilder().withCommand('pnpm').withArgs('run', 'nx');
+
+            if (version && !/^[78]/gm.test(version) && lt(version, '8.0.0')) {
+              builder = builder.withArgs('--');
+            }
+
+            return builder.build();
+          },
+        ],
       ],
-      [
-        'yarn',
-        'yarn.lock',
-        () => new CommandBuilder().withCommand('yarn').withArgs('nx').build(),
-      ],
-      [
-        'pnpm',
-        'pnpm-lock.yaml',
-        async () => {
-          const versionExecutor = new CommandBuilder()
-            .withCommand('pnpm')
-            .withArgs('--version')
-            .build();
-
-          const version = (await versionExecutor())
-            .filter(line => !!line && line !== '')
-            .find(line => semverRegex.test(line.trim()));
-
-          let builder = new CommandBuilder()
-            .withCommand('pnpm')
-            .withArgs('run', 'nx');
-
-          if (version && !/^[78]/gm.test(version) && lt(version, '8.0.0')) {
-            builder = builder.withArgs('--');
-          }
-
-          return builder.build();
-        },
-      ],
-    ], (name) => `Using ${ name } as package manager`);
-  } catch (e) {
+      name => `Using ${name} as package manager`,
+    );
+  } catch (e: any) {
     if (e.message === 'Could not locate') {
       throw new Error('Failed to detect your package manager, are you using npm or yarn?');
     } else {
@@ -111,7 +110,7 @@ export async function locateNx(): Promise<CommandWrapper> {
 }
 
 async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
-  const versions = {
+  const versions: NxVersion = {
     local: null,
     global: null,
   };
@@ -122,7 +121,7 @@ async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
   const localRegex = /-\sLocal:\sv(\d+.*)/gm;
   const globalRegex = /-\sGlobal:\sv(\d+.*)/gm;
 
-  let match: RegExpExecArray;
+  let match: RegExpExecArray | null;
   for (const line of output) {
     match = localRegex.exec(line);
     if (match?.[1] && match[1].toLowerCase() !== 'not found') {
@@ -144,8 +143,15 @@ async function getNxVersions(nx: CommandWrapper): Promise<NxVersion> {
   return versions;
 }
 
-function checkVersion(versions: NxVersion, version: string, operation: '>' | '>=' | '<' | '<=' | '=' = '='): boolean {
+function checkVersion(
+  versions: NxVersion,
+  version: string,
+  operation: '>' | '>=' | '<' | '<=' | '=' = '=',
+): boolean {
   const nxVersion = versions.local ?? versions.global;
+  if (!nxVersion) {
+    throw new Error('Failed to detect Nx version');
+  }
   switch (operation) {
     case '>':
       return gt(nxVersion, version);
@@ -161,7 +167,7 @@ function checkVersion(versions: NxVersion, version: string, operation: '>' | '>=
 }
 
 export async function getNxAffectedApps(
-  lastSuccesfulCommitSha: string,
+  lastSuccesfulCommitSha: string | null,
   tags: string[],
   nx: CommandWrapper,
 ): Promise<string[]> {
@@ -170,22 +176,17 @@ export async function getNxAffectedApps(
     throw new Error('Nx version 19.0.0 or higher is required to use this action');
   }
 
-  let args: string[] = [
-    'show',
-    'projects',
-    '--type=app',
-    '--json',
-  ];
+  let args: string[] = ['show', 'projects', '--type=app', '--json'];
 
   if (lastSuccesfulCommitSha) {
-    args.push(
-      '--affected',
-      `--base=${ lastSuccesfulCommitSha }`,
-      '--head=HEAD',
-    );
+    args.push('--affected', `--base=${lastSuccesfulCommitSha}`, '--head=HEAD');
   }
   let output = await nx(args);
-  let apps: string[] = JSON.parse(output.find(line => line.startsWith('[')));
+  const jsonLine = output.find(line => line.startsWith('['));
+  if (!jsonLine) {
+    throw new Error('Failed to parse Nx output, could not find the line with the list of projects');
+  }
+  let apps: string[] = JSON.parse(jsonLine);
   apps.sort((a, b) => a.localeCompare(b));
   if (tags.length > 0) {
     apps = await filterAppsByTags(apps, tags, nx);
@@ -194,7 +195,11 @@ export async function getNxAffectedApps(
   return apps;
 }
 
-async function filterAppsByTags(apps: string[], tags: string[], nx: CommandWrapper): Promise<string[]> {
+async function filterAppsByTags(
+  apps: string[],
+  tags: string[],
+  nx: CommandWrapper,
+): Promise<string[]> {
   const positiveTags = tags.filter(t => !t.startsWith('-:'));
   const negativeTags = tags.filter(t => t.startsWith('-:')).map(t => t.substring(2));
 
@@ -225,6 +230,12 @@ async function filterAppsByTags(apps: string[], tags: string[], nx: CommandWrapp
 
 async function getProjectTags(app: string, nx: CommandWrapper): Promise<string[]> {
   const projectJson = await nx(['show', 'project', app, '--json']);
-  const project = JSON.parse(projectJson.find(line => line.startsWith('{')));
+  const jsonLine = projectJson.find(line => line.startsWith('{'));
+  if (!jsonLine) {
+    throw new Error(
+      `Failed to parse Nx output for project ${app}, could not find the line with the project configuration`,
+    );
+  }
+  const project = JSON.parse(jsonLine);
   return project.tags ?? [];
 }

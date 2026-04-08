@@ -1,9 +1,6 @@
 import * as exec from '@actions/exec';
 
-export type CommandWrapper = (
-  args?: string[],
-  options?: exec.ExecOptions,
-) => Promise<string[]>
+export type CommandWrapper = (args?: string[], options?: exec.ExecOptions) => Promise<string[]>;
 
 export class CommandBuilder {
   private command = '';
@@ -18,13 +15,11 @@ export class CommandBuilder {
       let result = '';
       await exec.exec(
         this.command,
-        [...this.args, ...(args ?? [])]
-          .filter(arg => arg.length > 0)
-          .map(arg => arg.trim()),
+        [...this.args, ...(args ?? [])].filter(arg => arg.length > 0).map(arg => arg.trim()),
         {
           ...options,
           listeners: {
-            stdout: data => result += data.toString(),
+            stdout: data => (result += data.toString()),
           },
         },
       );

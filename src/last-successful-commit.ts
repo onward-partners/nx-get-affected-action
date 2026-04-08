@@ -6,9 +6,9 @@ export async function getLastSuccessfulCommit(
   token: string,
   workflowId: string,
   branch: string,
-): Promise<string> {
+): Promise<string | null> {
   const octokit = github.getOctokit(token);
-  const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+  const [owner, repo] = process.env.GITHUB_REPOSITORY!.split('/');
   const res = await octokit.rest.actions.listWorkflowRuns({
     owner,
     repo,
@@ -16,17 +16,18 @@ export async function getLastSuccessfulCommit(
     status: 'success',
     branch,
   });
-  let result = res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0].head_commit.id : null;
+  let result =
+    res.data.workflow_runs.length > 0 ? res.data.workflow_runs[0]?.head_commit?.id : null;
   if (result) {
     const valid = await checkCommitHash(result);
     if (!valid) {
-      core.info(`ℹ️ Commit hash of previous build not valid: ${ result }`);
+      core.info(`ℹ️ Commit hash of previous build not valid: ${result}`);
       result = null;
     }
   }
 
-  core.info(`ℹ️ Last successful build: ${ result ?? 'None' }`);
-  return result;
+  core.info(`ℹ️ Last successful build: ${result ?? 'None'}`);
+  return result ?? null;
 }
 
 async function checkCommitHash(hash: string): Promise<boolean> {
