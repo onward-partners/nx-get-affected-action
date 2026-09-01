@@ -1,6 +1,6 @@
 {
   "name": "@onward-partners/nx-get-affected-action",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "This action returns the apps that got affected since the last build",
   "scripts": {
     "bundle": "npm run format:write && npm run package",
