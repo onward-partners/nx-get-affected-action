@@ -1,0 +1,6 @@
+enablePrePostScripts: true
+autoInstallPeers: true
+strictPeerDependencies: false
+updateNotifier: false
+update:
+  githubActions: true
